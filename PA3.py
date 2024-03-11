@@ -35,6 +35,7 @@ from pshape import PShape
 import sys, serial, glob
 from serial.tools import list_ports
 import time
+import random
 
 
 ##################### General Pygame Init #####################
@@ -75,6 +76,9 @@ cLightblue = (0,176,240)
 cRed = (255,0,0)
 cOrange = (255,100,0)
 cYellow = (255,255,0)
+cboxRed = (190, 30, 30)
+cboxBlue = (30, 30, 190)
+cboxGreen = (30, 190, 30)
 
 
 ##################### Init Simulated haptic device #####################
@@ -106,7 +110,7 @@ b = 0.8            ##Viscous of the pseudohaptic display
 hhandle = pygame.image.load('handle.png')
 haptic  = pygame.Rect(*screenHaptics.get_rect().center, 0, 0).inflate(48, 48)
 cursor  = pygame.Rect(0, 0, 5, 5)
-colorHaptic = cOrange ##color of the wall
+colorHaptic = cDarkblue
 
 xh = np.array(haptic.center)
 
@@ -124,10 +128,22 @@ vel = (0,0)
 ##################### Init Virtual env. #####################
 
 '''*********** !Student should fill in ***********'''
-##hint use pygame.rect() to create rectangles
 
+def get_random_color():
+    return {
+        1: cboxRed,
+        2: cboxBlue,
+        3: cboxGreen
+    }[random.randint(1, 3)]
 
+box_velocity = 1.2 # pixels per frame
+box_color = (0,0,0) # initialize box color as black
 
+list_colors = [get_random_color() for _ in range(6)]
+
+# Create boxes 
+box_width, box_height = 35, 35
+boxes = [{'x': -3*i*box_width, 'y': 300, 'width': box_width, 'height': box_height, 'color': color} for i, color in enumerate(list_colors)]
 
 
 '''*********** !Student should fill in ***********'''
@@ -261,13 +277,13 @@ while run:
     
     ######### Compute forces ########
     
-    ##Step 1 Elastic impedance
+    # Elastic impedance
     img_center = np.array((300, 200))
     cursor_center = np.array(cursor.center)  # Convert cursor.center to a NumPy array
     fe = (cursor_center - img_center) * k_spring
 
     
-    ##Step 2 Damping and masses
+    # Damping and masses
     
     #Damping
     be = 0.001 #define damping ratio
@@ -284,13 +300,6 @@ while run:
     fm[0] = mass*acc[0]
     fm[1] = mass*acc[1]
 
-
-    ##Step 3 Virtual shapes
-    
-    ##Step 4 Virtual wall 
-    
-    ##Step 5 Bonus: Friction
-    
 
     ##Update old samples for velocity computation
     xhold = xh
@@ -346,11 +355,29 @@ while run:
     
     
     ##Render the VR surface
-    screenVR.fill(cLightblue)
+    screenVR.fill(cWhite)
     '''*********** Student should fill in ***********'''
     ### here goes the visualisation of the VR sceen. 
     ### Use pygame.draw.rect(screenVR, color, rectangle) to render rectangles. 
     pygame.draw.rect(screenVR, colorHaptic, haptic, border_radius=8)
+    #line(surface, color, start_pos, end_pos)
+    pygame.draw.line(screenVR, (0,0,0), (0,0), (0,400))
+
+
+    # Move and draw the boxes
+    for box in boxes:
+        box['x'] += box_velocity
+        
+        # If the box has moved off the screen, reset its position to the left and assign new random color
+        if box['x'] > 600:
+            box['x'] = -box_width
+            box['color'] = get_random_color()
+            
+    
+        # Draw the box
+        pygame.draw.rect(screenVR, box['color'], (box['x'], box['y'], box['width'], box['height']))
+    
+
     
     
     '''*********** !Student should fill in ***********'''
