@@ -17,8 +17,8 @@ TASKS:
 5- User experiments and graphs
 
 DEADLINES:
-1st of April - Final deadline project
-2nd of April - Presentation project
+31st of March - Final deadline project
+1st and 3rd of April - Presentations project
 
 INSTRUCTORS: Michael Wiertlewski & Laurence Willemet & Mostafa Attala
 e-mail: {m.wiertlewski,l.willemet,m.a.a.atalla}@tudelft.nl
