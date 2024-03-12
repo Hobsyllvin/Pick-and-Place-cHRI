@@ -110,7 +110,7 @@ b = 0.8            ##Viscous of the pseudohaptic display
 hhandle = pygame.image.load('handle.png')
 haptic  = pygame.Rect(*screenHaptics.get_rect().center, 0, 0).inflate(48, 48)
 cursor  = pygame.Rect(0, 0, 5, 5)
-colorHaptic = cDarkblue
+colorHaptic = cYellow
 
 xh = np.array(haptic.center)
 
