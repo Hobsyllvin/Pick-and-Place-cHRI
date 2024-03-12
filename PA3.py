@@ -143,7 +143,7 @@ list_colors = [get_random_color() for _ in range(6)]
 
 # Create boxes 
 box_width, box_height = 35, 35
-boxes = [{'x': -3*i*box_width, 'y': 300, 'width': box_width, 'height': box_height, 'color': color} for i, color in enumerate(list_colors)]
+boxes = [{'x': -3*i*box_width, 'y': 300, 'width': box_width, 'height': box_height, 'color': color, 'in_collision': False} for i, color in enumerate(list_colors)]
 
 
 '''*********** !Student should fill in ***********'''
@@ -217,6 +217,9 @@ robotToggle = True
 
 debugToggle = False
 
+grab_box = False
+
+haptic_free = True # This variable is needed to avoid interacting with other boxes while other box is already grabbed
     
 while run:
         
@@ -234,6 +237,8 @@ while run:
                 debugToggle = not debugToggle
             if event.key == ord('r'):
                 robotToggle = not robotToggle
+            if event.key == ord('g'):
+                grab_box = not grab_box
             '''*********** Student can add more ***********'''
             ##Toggle the wall or the height map
             
@@ -364,18 +369,50 @@ while run:
     pygame.draw.line(screenVR, (0,0,0), (0,0), (0,400))
 
 
-    # Move and draw the boxes
+    # Move, grab and draw the boxes
     for box in boxes:
-        box['x'] += box_velocity
         
-        # If the box has moved off the screen, reset its position to the left and assign new random color
-        if box['x'] > 600:
-            box['x'] = -box_width
-            box['color'] = get_random_color()
+        # Create rect object of the box in order to apply pygame collision logic
+        box_rect = pygame.Rect(box['x'], box['y'], box['width'], box['height'])
+        
+        # If the haptic device is colliding and the user has pressed "grab", set the box in_collision state
+        if haptic.colliderect(box_rect) and grab_box and haptic_free:
+            box['in_collision'] = True
+            haptic_free = False
+        
+        if box['in_collision']:
             
-    
+            # If the user releases the box
+            if not grab_box:
+                # Set the box as not in_collision and the haptic as free, so it is available to grab other box
+                box['in_collision'] = False
+                haptic_free = True
+                
+                # Reset the position and color of the box
+                box_rect.x = -box_width
+                box_rect.y = 300
+                box['color'] = get_random_color() 
+            
+            # If the box is still in_collision and grabbed, fix the position of the box to the one of the haptic device
+            else:
+                box_rect.midtop = haptic.midbottom
+            
+        else:
+            # If the box is not in collision, update its velocity
+            box_rect.x += box_velocity
+        
+            # If the box has moved off the screen, reset its position to the left and assign new random color
+            if box_rect.x > 600:
+               box_rect.x = -box_width
+               box_rect.y = 300
+               box['color'] = get_random_color()  
+            
+        # Update the x and y positions of the box   
+        box['x'] = box_rect.x
+        box['y'] = box_rect.y
+        
         # Draw the box
-        pygame.draw.rect(screenVR, box['color'], (box['x'], box['y'], box['width'], box['height']))
+        pygame.draw.rect(screenVR, box['color'], box_rect)
     
 
     
