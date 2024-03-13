@@ -193,6 +193,14 @@ grab_box = False
 
 haptic_free = True  # This variable is needed to avoid interacting with other boxes while other box is already grabbed
 
+g = 9.8  # gravity constant m/s^2
+
+ # Compute acceleration
+meter_pixel_ratio = 0.0002645833 # m One pixel is moreless equal to 0.0002645833 m
+
+def get_random_weight():
+    return random.uniform(0.2, 1) # Kg
+
 while run:
 
     #########Process events  (Mouse, Keyboard etc...)#########
@@ -254,37 +262,18 @@ while run:
 
     vel = (xh - xhold) / dt  # velocity for damping
 
+
     fb[0] = be * vel[0]
     fb[1] = be * vel[1]
-
-
+    
+    
+    acc = (vel - velold)
+    
     ##Update old samples for velocity computation
     xhold = xh
     xmold = xm
     velold = vel
 
-    '''*********** !Student should fill in ***********'''
-
-    ######### Send forces to the device #########
-    if port:
-        fe[1] = -fe[1]  ##Flips the force on the Y=axis 
-
-        ##Update the forces of the device
-        device.set_device_torques(fe)
-        device.device_write_torques()
-        # pause for 1 millisecond
-        time.sleep(0.001)
-    else:
-        ######### Update the positions according to the forces ########
-        ##Compute simulation (here there is no inertia)
-        ##If the haply is connected xm=xh and dxh = 0
-        force = fe + fb - fm  # sum up forces
-        dxh = (k / b * (
-                xm - xh) / window_scale - force / b)  ####replace with the valid expression that takes all the forces into account
-        dxh = dxh * window_scale
-        xh = np.round(xh + dxh)  ##update new positon of the end effector
-
-    haptic.center = xh
 
     ######### Graphical output #########
     ##Render the haptic surface
@@ -318,7 +307,7 @@ while run:
 
     # Creating box objects
     if len(boxes) == 0 or (boxes[-1].x - initial_x) >= (boxes[-1].width * 4):  # 3 times width + box width itself
-        new_box = Box(weight=10, width=30, x=initial_x)
+        new_box = Box(weight=get_random_weight(), width=30, x=initial_x)
         boxes.append(new_box)
 
     # drawing the conveyor belt
@@ -352,17 +341,53 @@ while run:
 
                 boxes.remove(box)
 
-            # If the box is still in_collision and grabbed, fix the position of the box to the one of the haptic device
+            # If the box is still in_collision and grabbed
             else:
+                
+                # Fix the position of the box to the one of the haptic device
                 box.x, box.y = haptic.x + (haptic.width - box.width) / 2, haptic.y + haptic.height
+                
+               
+                # Compute inertia force
+                # If we do not convert the acceleration to m, the fm is huge
+                fm[0] += box.weight*acc[0]*meter_pixel_ratio
+                fm[1] += box.weight*acc[1]*meter_pixel_ratio
+                
+                #Compute gravity force
+                fm[1] += g*box.weight
 
         else:
             box.update()
 
         # Draw the box
         box.draw(screenVR)
+    
+    # This part of the code has been placed here in order to render the forces after the update of the boxes state
+    ######### Send forces to the device #########
+    force = fe + fb - fm  # sum up forces
+    
+    if port:
+       # fe[1] = -fe[1]  ##Flips the force on the Y=axis 
+        force[1] = -force[1]
 
-    '''*********** !Student should fill in ***********'''
+        ##Update the forces of the device
+        device.set_device_torques(force)
+        device.device_write_torques()
+        # pause for 1 millisecond
+        time.sleep(0.001)
+    else:
+        ######### Update the positions according to the forces ########
+        ##Compute simulation (here there is no inertia)
+        ##If the haply is connected xm=xh and dxh = 0
+        dxh = (k / b * (
+                xm - xh) / window_scale - force / b)  ####replace with the valid expression that takes all the forces into account
+        dxh = dxh * window_scale
+        xh = np.round(xh + dxh)  ##update new positon of the end effector
+
+    haptic.center = xh
+    
+    #########
+    
 
     ##Fuse it back together
     window.blit(screenHaptics, (0, 0))
