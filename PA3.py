@@ -52,6 +52,7 @@ pygame.display.set_icon(icon)
 
 ##add text on top to debugToggle the timing and forces
 font = pygame.font.Font('freesansbold.ttf', 18)
+scoreFont = pygame.font.Font('freesansbold.ttf', 28)
 
 pygame.mouse.set_visible(True)  ##Hide cursor by default. 'm' toggles it
 
@@ -59,6 +60,10 @@ pygame.mouse.set_visible(True)  ##Hide cursor by default. 'm' toggles it
 text = font.render('Virtual Haptic Device', True, (0, 0, 0), (255, 255, 255))
 textRect = text.get_rect()
 textRect.topleft = (10, 10)
+
+score = font.render('Virtual Game Score', True, (0, 0, 0), (255, 255, 255))
+scoreRect = score.get_rect()
+scoreRect.topleft = (600+30, 30)
 
 xc, yc = screenVR.get_rect().center  ##center of the screen
 
@@ -76,10 +81,11 @@ cYellow = (255, 255, 0)
 cboxRed = (190, 30, 30)
 cboxBlue = (30, 30, 190)
 cboxGreen = (30, 190, 30)
+cplatformGreen = (20, 170, 30) # Make it a bit darker than the smaller boxes
 
 boxes = []  # List to hold box instances
 initial_x = 0  # Initial x-coord of boxes
-score = 0  # how many boxes were placed correctly
+current_score = 0  # how many boxes were placed correctly
 
 ##################### Init Simulated haptic device #####################
 
@@ -201,10 +207,11 @@ while run:
                 run = False
             if event.key == ord('d'):
                 debugToggle = not debugToggle
-            if event.key == ord('r'):
-                robotToggle = not robotToggle
             if event.key == ord('g'):
-                grab_box = not grab_box
+                grab_box = True
+            if event.key == ord('r'):
+                grab_box = False
+
 
     ######### Read position (Haply and/or Mouse)  #########
 
@@ -242,13 +249,6 @@ while run:
 
     ######### Compute forces ########
 
-    # Elastic impedance
-    img_center = np.array((300, 200))
-    cursor_center = np.array(cursor.center)  # Convert cursor.center to a NumPy array
-    fe = (cursor_center - img_center) * k_spring
-
-    # Damping and masses
-
     # Damping
     be = 0.001  # define damping ratio
 
@@ -257,12 +257,6 @@ while run:
     fb[0] = be * vel[0]
     fb[1] = be * vel[1]
 
-    # Mass
-    mass = 0.001
-
-    acc = (vel - velold)
-    fm[0] = mass * acc[0]
-    fm[1] = mass * acc[1]
 
     ##Update old samples for velocity computation
     xhold = xh
@@ -318,7 +312,7 @@ while run:
     '''*********** Student should fill in ***********'''
     ### here goes the visualisation of the VR sceen. 
     ### Use pygame.draw.rect(screenVR, color, rectangle) to render rectangles. 
-    pygame.draw.rect(screenVR, colorHaptic, haptic, border_radius=8)
+    pygame.draw.rect(screenVR, cDarkblue, haptic, border_radius=8)
     # line(surface, color, start_pos, end_pos)
     pygame.draw.line(screenVR, (0, 0, 0), (0, 0), (0, 400))
 
@@ -331,13 +325,15 @@ while run:
     pygame.draw.rect(screenVR, (100, 100, 100), (0, 300 + new_box.width, screenVR.get_width(), 35), 10, border_radius=8)
 
     # drawing the platform
-    pygame.draw.rect(screenVR, (255, 10, 100), platform)
+    pygame.draw.rect(screenVR, cplatformGreen, platform)
 
     # Move, grab and draw the boxes
     for box in boxes:
 
         # If the haptic device is colliding and the user has pressed "grab", set the box in_collision state
         if haptic.colliderect(box.get_rect()) and grab_box and haptic_free:
+            #########Process events  (Mouse, Keyboard etc...)#########
+            grab_box = True
             box.picked = True
             haptic_free = False
 
@@ -351,7 +347,8 @@ while run:
 
                 # correct placement detection (basic)
                 if platform.colliderect(box.get_rect()):
-                    score += 1
+                    current_score += 1
+                    print("Current Score: ", current_score)
 
                 boxes.remove(box)
 
@@ -381,6 +378,10 @@ while run:
                            "  fm = " + str(np.round(10 * fm) / 10) \
                            , True, (0, 0, 0), (255, 255, 255))
         window.blit(text, textRect)
+
+    score = font.render("Score = " + str(round(current_score)), True, (0, 0, 0), (255, 255, 255))
+    window.blit(score, scoreRect)
+
 
     pygame.display.flip()
     ##Slow down the loop to match FPS

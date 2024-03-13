@@ -10,7 +10,7 @@ class Box:
         self.color = (30, 190, 30)
         self.x = x
         self.y = 300
-        self.speed = 0.5
+        self.speed = 0.9
         self.picked = False
 
     def update(self):
