@@ -53,6 +53,7 @@ pygame.display.set_icon(icon)
 ##add text on top to debugToggle the timing and forces
 font = pygame.font.Font('freesansbold.ttf', 18)
 scoreFont = pygame.font.Font('freesansbold.ttf', 28)
+beginFont = pygame.font.Font('freesansbold.ttf', 30)
 
 pygame.mouse.set_visible(True)  ##Hide cursor by default. 'm' toggles it
 
@@ -61,14 +62,29 @@ text = font.render('Virtual Haptic Device', True, (0, 0, 0), (255, 255, 255))
 textRect = text.get_rect()
 textRect.topleft = (10, 10)
 
+textTime = font.render('Remaining time', True, (0, 0, 0), (255, 255, 255))
+timeRect = textTime.get_rect()
+timeRect.topleft = (600+20, 20)
+
 score = font.render('Virtual Game Score', True, (0, 0, 0), (255, 255, 255))
 scoreRect = score.get_rect()
-scoreRect.topleft = (600+30, 30)
+scoreRect.topleft = (600+20, 40)
+
+textinstruct = font.render('Press g and press r', True, (0, 0, 0), (255, 255, 255))
+instructionRect = textinstruct.get_rect()
+instructionRect.topleft = (760, 372)
+
+textstart = font.render('Pick the first box to begin', True, (0, 0, 0), (255, 255, 255))
+startRect = textstart.get_rect()
+startRect.topleft = (600+200, 200)
+
+
 
 xc, yc = screenVR.get_rect().center  ##center of the screen
 
 ##initialize "real-time" clock
 clock = pygame.time.Clock()
+start_ticks = pygame.time.get_ticks()
 FPS = 100  # in Hertz
 
 ##define some colors
@@ -84,8 +100,13 @@ cboxGreen = (30, 190, 30)
 cplatformGreen = (20, 170, 30) # Make it a bit darker than the smaller boxes
 
 boxes = []  # List to hold box instances
-initial_x = 0  # Initial x-coord of boxes
+initial_x = -35  # Initial x-coord of boxes
 current_score = 0  # how many boxes were placed correctly
+
+start_time = False
+time_string = ""
+game_duration = 1 * 60 * 1000 # 120 seconds
+remaining_time =  game_duration
 
 ##################### Init Simulated haptic device #####################
 
@@ -122,7 +143,6 @@ vel = (0, 0)
 
 
 ##################### Init Virtual env. #####################
-
 
 ##################### Detect and Connect Physical device #####################
 # USB serial microcontroller program id data:
@@ -190,6 +210,7 @@ robotToggle = True
 debugToggle = False
 
 grab_box = False
+first_box_picked = False
 
 haptic_free = True  # This variable is needed to avoid interacting with other boxes while other box is already grabbed
 
@@ -216,12 +237,28 @@ while run:
             if event.key == ord('d'):
                 debugToggle = not debugToggle
             if event.key == ord('g'):
-                grab_box = True
+                grab_box = True                               
             if event.key == ord('r'):
                 grab_box = False
 
+    # Calculate elapsed time
+    if first_box_picked:
 
-    ######### Read position (Haply and/or Mouse)  #########
+        elapsed_time = pygame.time.get_ticks() - start_ticks
+        remaining_time = game_duration - elapsed_time  # 2 minutes in milliseconds - elapsed_time
+
+        # Ensure remaining_time never goes negative
+        remaining_time = max(remaining_time, 0)
+
+        minutes = remaining_time // 60000
+        seconds = (remaining_time // 1000) % 60
+        milliseconds = (remaining_time % 1000) // 10  # Get the last 3 digits and scale for two decimal places display
+        
+        # Format the time string
+        time_string = "{:02d}:{:02d}:{:02d}".format(minutes, seconds, milliseconds)
+        start_time = True
+    else:
+        time_string = "02:00:00"
 
     ##Get endpoint position xh
     if port and haplyBoard.data_available():  ##If Haply is present
@@ -321,9 +358,14 @@ while run:
 
         # If the haptic device is colliding and the user has pressed "grab", set the box in_collision state
         if haptic.colliderect(box.get_rect()) and grab_box and haptic_free:
-            #########Process events  (Mouse, Keyboard etc...)#########
+
             grab_box = True
             box.picked = True
+
+            # First box has been picked, so game can start
+            if not first_box_picked:
+                start_ticks = pygame.time.get_ticks() 
+                first_box_picked = True 
             haptic_free = False
 
         if box.picked:
@@ -335,9 +377,8 @@ while run:
                 haptic_free = True
 
                 # correct placement detection (basic)
-                if platform.colliderect(box.get_rect()):
+                if platform.colliderect(box.get_rect()) and remaining_time != 0:
                     current_score += 1
-                    print("Current Score: ", current_score)
 
                 boxes.remove(box)
 
@@ -404,8 +445,22 @@ while run:
                            , True, (0, 0, 0), (255, 255, 255))
         window.blit(text, textRect)
 
-    score = font.render("Score = " + str(round(current_score)), True, (0, 0, 0), (255, 255, 255))
+    if not first_box_picked:
+        textstart = font.render("Pick up the first box to start", True, (0, 0, 0), (255, 255, 255))
+        window.blit(textstart, startRect)
+    if remaining_time == 0:
+        textstart = font.render("Nice job!", True, (0, 0, 0), (255, 255, 255))
+        startRect.topleft = (600+270, 180)
+        window.blit(textstart, startRect)
+
+    texttime = font.render("Remaining time: " + time_string, True, (0, 0, 0), (255, 255, 255))
+    window.blit(texttime, timeRect)
+
+    score = font.render("Score: " + str(round(current_score)), True, (0, 0, 0), (255, 255, 255))
     window.blit(score, scoreRect)
+
+    textinstruct = font.render("Press g to grab and r to release", True, (0, 0, 0), (255, 255, 255))
+    window.blit(textinstruct, instructionRect)
 
 
     pygame.display.flip()
