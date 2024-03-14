@@ -7,7 +7,7 @@ BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 GRAY = (150, 150, 150)
 PI = math.pi
-scale_factor = 0.01 # This factor is used in order to scale from pixels to meters
+scale_factor = 0.02 # This factor is used in order to scale from pixels to meters
                     # But without using the actual conversion, since it was too fast
                     # This ratio can be adjusted to make the velocity of the pendulum faster or slower (the smaller, the faster)
 
@@ -27,8 +27,8 @@ class Pendulum:
     def tension_force_components(self):
         g = 9.81
         tension = (self.bob_mass * g) + (self.bob_mass * self.length * self.angular_velocity ** 2)
-        tension_x = tension * math.sin(self.angle)
-        tension_y = tension * math.cos(self.angle)
+        tension_x = tension * math.sin(self.angle) * 5 * -1
+        tension_y = tension * math.cos(self.angle) * 0.3 * -1
         return [tension_x, tension_y]
 
     def get_bob_mass_coordinates(self, screen, pivot):
