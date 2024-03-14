@@ -36,6 +36,7 @@ import sys, serial, glob
 from serial.tools import list_ports
 import time
 import random
+from pendulum_2 import Pendulum
 
 ##################### General Pygame Init #####################
 ##initialize pygame window
@@ -222,6 +223,7 @@ meter_pixel_ratio = 0.0002645833 # m One pixel is moreless equal to 0.0002645833
 def get_random_weight():
     return random.uniform(0.2, 1) # Kg
 
+
 while run:
 
     #########Process events  (Mouse, Keyboard etc...)#########
@@ -289,7 +291,8 @@ while run:
     fe = np.zeros(2)  ##Environment force is set to 0 initially.
     fb = np.zeros(2)  ##Damping force is initialized with 0
     fm = np.zeros(2)  ##Force induced by mass is initialized with 0
-
+    fp = np.zeros(2)  ## Pendulum force
+    
     ##Replace 
 
     ######### Compute forces ########
@@ -310,6 +313,8 @@ while run:
     xhold = xh
     xmold = xm
     velold = vel
+    
+   
 
 
     ######### Graphical output #########
@@ -323,7 +328,7 @@ while run:
                                  255))  # if collide else (255, 255, 255)
 
     pygame.draw.rect(screenHaptics, colorMaster, haptic, border_radius=4)
-
+    
     ######### Robot visualization ###################
     # update individual link position
     if robotToggle:
@@ -341,7 +346,10 @@ while run:
     pygame.draw.rect(screenVR, cDarkblue, haptic, border_radius=8)
     # line(surface, color, start_pos, end_pos)
     pygame.draw.line(screenVR, (0, 0, 0), (0, 0), (0, 400))
-
+    
+    # Create stick of pendulum
+    pendulum_stick = pygame.Rect(haptic.x + haptic.width/2, haptic.y + haptic.height, 2, 100)
+                     
     # Creating box objects
     if len(boxes) == 0 or (boxes[-1].x - initial_x) >= (boxes[-1].width * 4):  # 3 times width + box width itself
         new_box = Box(weight=get_random_weight(), width=30, x=initial_x)
@@ -357,10 +365,15 @@ while run:
     for box in boxes:
 
         # If the haptic device is colliding and the user has pressed "grab", set the box in_collision state
-        if haptic.colliderect(box.get_rect()) and grab_box and haptic_free:
+        if pendulum_stick.colliderect(box.get_rect()) and grab_box and haptic_free:
 
             grab_box = True
             box.picked = True
+            
+            # Create the pendulum
+            # The length is in pixels
+            # An initial angle is needed, if not it does not swing
+            pendulum = Pendulum(length=100, angle=0.2, bob_mass = box.weight)
 
             # First box has been picked, so game can start
             if not first_box_picked:
@@ -385,27 +398,37 @@ while run:
             # If the box is still in_collision and grabbed
             else:
                 
-                # Fix the position of the box to the one of the haptic device
-                box.x, box.y = haptic.x + (haptic.width - box.width) / 2, haptic.y + haptic.height
+                # Update the position of the pendulum
+                pendulum.update(dt)
                 
-               
+                # Get the coordinates of the box
+                box.x, box.y = pendulum.get_bob_mass_coordinates(screenVR, [haptic.x + haptic.width/2, haptic.y + haptic.height/2] )
+                
+                #Draw the line from the haptics to the pendulum
+                pygame.draw.line(screenVR, (0,0,0), haptic.midbottom, (box.x + box.width/2, box.y), 2)
+                
+                # Compute the force exerted by the pendulum
+                fp = pendulum.tension_force_components()
+                
                 # Compute inertia force
                 # If we do not convert the acceleration to m, the fm is huge
                 fm[0] += box.weight*acc[0]*meter_pixel_ratio
                 fm[1] += box.weight*acc[1]*meter_pixel_ratio
-                
-                #Compute gravity force
-                fm[1] -= g*box.weight
 
         else:
             box.update()
 
         # Draw the box
+      
         box.draw(screenVR)
+        
+    # If the haptic is free, draw the pendulum
+    if haptic_free:
+        pygame.draw.rect(screenVR,(0,0,0), pendulum_stick)
     
     # This part of the code has been placed here in order to render the forces after the update of the boxes state
     ######### Send forces to the device #########
-    force = fe + fb + fm  # sum up forces
+    force = fe + fb + fm + fp # sum up forces
     
     if port:
        # fe[1] = -fe[1]  ##Flips the force on the Y=axis 
