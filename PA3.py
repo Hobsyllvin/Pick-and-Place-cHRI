@@ -106,7 +106,7 @@ current_score = 0  # how many boxes were placed correctly
 
 start_time = False
 time_string = ""
-game_duration = 1 * 60 * 1000 # 120 seconds
+game_duration = 2 * 60 * 1000 # 120 seconds
 remaining_time =  game_duration
 
 ##################### Init Simulated haptic device #####################
@@ -130,7 +130,7 @@ colorHaptic = cYellow
 xh = np.array(haptic.center)
 
 # platform
-platform = pygame.Rect(500, 100, 50, 20)
+platform = pygame.Rect(500, 200, 30, 20)
 
 ##Set the old value to 0 to avoid jumps at init
 xhold = 0
@@ -313,10 +313,7 @@ while run:
     xhold = xh
     xmold = xm
     velold = vel
-    
    
-
-
     ######### Graphical output #########
     ##Render the haptic surface
     screenHaptics.fill(cWhite)
@@ -373,7 +370,13 @@ while run:
             # Create the pendulum
             # The length is in pixels
             # An initial angle is needed, if not it does not swing
-            pendulum = Pendulum(length=100, angle=0.2, bob_mass = box.weight)
+
+            #print("Sinus old vel: ", np.sin(velold[0]))     
+            # Add initial angle to pendulum based on current picker velocity in x direction relative to moving boxes     
+            swing_gain = 0.2
+            pendulum_init_angle = swing_gain * (np.sin(velold[0]) + box.speed/3)
+            print(pendulum_init_angle)
+            pendulum = Pendulum(length=100, angle=pendulum_init_angle, bob_mass = box.weight)
 
             # First box has been picked, so game can start
             if not first_box_picked:
