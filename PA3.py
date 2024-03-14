@@ -395,7 +395,7 @@ while run:
                 fm[1] += box.weight*acc[1]*meter_pixel_ratio
                 
                 #Compute gravity force
-                fm[1] += g*box.weight
+                fm[1] -= g*box.weight
 
         else:
             box.update()
@@ -405,7 +405,7 @@ while run:
     
     # This part of the code has been placed here in order to render the forces after the update of the boxes state
     ######### Send forces to the device #########
-    force = fe + fb - fm  # sum up forces
+    force = fe + fb + fm  # sum up forces
     
     if port:
        # fe[1] = -fe[1]  ##Flips the force on the Y=axis 
