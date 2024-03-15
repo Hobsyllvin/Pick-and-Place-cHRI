@@ -98,6 +98,7 @@ cboxRed = (190, 30, 30)
 cboxBlue = (30, 30, 190)
 cboxGreen = (30, 190, 30)
 cplatformGreen = (20, 170, 30) # Make it a bit darker than the smaller boxes
+cplatformTouched = (40, 200, 40)
 
 boxes = []  # List to hold box instances
 initial_x = -35  # Initial x-coord of boxes
@@ -107,6 +108,8 @@ start_time = False
 time_string = ""
 game_duration = 2 * 60 * 1000 # 120 seconds
 remaining_time =  game_duration
+
+current_box_weight = 0
 
 ##################### Init Simulated haptic device #####################
 
@@ -122,6 +125,8 @@ b = 0.8  ##Viscous of the pseudohaptic display
 
 ##define sprites
 hhandle = pygame.image.load('handle.png')
+gripper_open = pygame.image.load('grip_open.png')
+gripper_closed = pygame.image.load('grip_closed.png')
 haptic = pygame.Rect(*screenHaptics.get_rect().center, 0, 0).inflate(48, 48)
 cursor = pygame.Rect(0, 0, 5, 5)
 colorHaptic = cYellow
@@ -220,7 +225,7 @@ g = 9.8  # gravity constant m/s^2
 meter_pixel_ratio = 0.0002645833 # m One pixel is moreless equal to 0.0002645833 m
 
 def get_random_weight():
-    return random.uniform(0.2, 1) # Kg
+    return random.uniform(0.2, 0.8) # Kg
 
 # Create initial instance of the gripper, initialize off-screen
 gripper = Gripper(weight=0.2, width=10, x=-100, y=-100)
@@ -235,11 +240,9 @@ while run:
         if event.type == pygame.QUIT:
             run = False
         elif event.type == pygame.KEYUP:
-            if event.key == ord('m'):  ##Change the visibility of the mouse
-                pygame.mouse.set_visible(not pygame.mouse.get_visible())
             if event.key == ord('q'):  ##Force to quit
                 run = False
-            if event.key == ord('d'):
+            if event.key == ord('m'):
                 debugToggle = not debugToggle
             if event.key == ord('g'):
                 grab_box = True                               
@@ -358,6 +361,7 @@ while run:
     # Create an instance of the Gripper and create Rectangle for later collision checking
     gripper.x, gripper.y = haptic.x + haptic.width/2 - 5, haptic.y + haptic.width + 100 # with 100 being pendulum length
     gripper_rect = pygame.Rect(gripper.get_rect())
+    
 
     # drawing the conveyor belt
     pygame.draw.rect(screenVR, (100, 100, 100), (0, 300 + new_box.width, screenVR.get_width(), 35), 10, border_radius=8)
@@ -373,6 +377,8 @@ while run:
 
             grab_box = True
             box.picked = True
+
+            current_box_weight = box.weight
             
             # Create the pendulum
             # The length is in pixels
@@ -395,6 +401,10 @@ while run:
             haptic_free = False
 
         if box.picked:
+
+            # Highlight the platform so the user knows he is in the right spot
+            if platform.colliderect(box.get_rect()):
+                pygame.draw.rect(screenVR, cplatformTouched, platform)
 
             # If the user releases the box
             if not grab_box:
@@ -436,13 +446,15 @@ while run:
 
         # Draw the box
         box.draw(screenVR)
-        gripper.draw(screenVR)
+        screenVR.blit(gripper_closed, (gripper.x, gripper.y))
+        #gripper.draw(screenVR)
         
     # If the haptic is free, draw the pendulum
     if haptic_free:
         pygame.draw.rect(screenVR,(0,0,0), pendulum_stick)
         gripper.x, gripper.y = haptic.x + haptic.width/2 - 5, haptic.y + haptic.width + 100 # with 100 being pendulum length
-        gripper.draw(screenVR)
+        screenVR.blit(gripper_open, (gripper.x, gripper.y))
+        #gripper.draw(screenVR)
     
     # This part of the code has been placed here in order to render the forces after the update of the boxes state
     ######### Send forces to the device #########
@@ -478,10 +490,8 @@ while run:
     if debugToggle:
         text = font.render("FPS = " + str(round(clock.get_fps())) + \
                            "  xm = " + str(np.round(10 * xm) / 10) + \
-                           "  xh = " + str(np.round(10 * xh) / 10) + \
                            "  fe = " + str(np.round(10 * fe) / 10) + \
-                           "  fb = " + str(np.round(10 * fb) / 10) + \
-                           "  fm = " + str(np.round(10 * fm) / 10) \
+                           "  box_weight = " + str(np.round(10*current_box_weight) / 10)
                            , True, (0, 0, 0), (255, 255, 255))
         window.blit(text, textRect)
 
