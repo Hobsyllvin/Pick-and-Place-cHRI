@@ -36,7 +36,8 @@ import sys, serial, glob
 from serial.tools import list_ports
 import time
 import random
-from pendulum_2 import Pendulum
+from pendulum import Pendulum
+from gripper import Gripper
 
 ##################### General Pygame Init #####################
 ##initialize pygame window
@@ -78,8 +79,6 @@ instructionRect.topleft = (760, 372)
 textstart = font.render('Pick the first box to begin', True, (0, 0, 0), (255, 255, 255))
 startRect = textstart.get_rect()
 startRect.topleft = (600+200, 200)
-
-
 
 xc, yc = screenVR.get_rect().center  ##center of the screen
 
@@ -223,6 +222,10 @@ meter_pixel_ratio = 0.0002645833 # m One pixel is moreless equal to 0.0002645833
 def get_random_weight():
     return random.uniform(0.2, 1) # Kg
 
+# Create initial instance of the gripper, initialize off-screen
+gripper = Gripper(weight=0.2, width=10, x=-100, y=-100)
+
+
 
 while run:
 
@@ -345,12 +348,16 @@ while run:
     pygame.draw.line(screenVR, (0, 0, 0), (0, 0), (0, 400))
     
     # Create stick of pendulum
-    pendulum_stick = pygame.Rect(haptic.x + haptic.width/2, haptic.y + haptic.height, 2, 100)
-                     
+    pendulum_stick = pygame.Rect(haptic.x + haptic.width/2 - 1, haptic.y + haptic.height, 2, 100)
+                    
     # Creating box objects
     if len(boxes) == 0 or (boxes[-1].x - initial_x) >= (boxes[-1].width * 4):  # 3 times width + box width itself
         new_box = Box(weight=get_random_weight(), width=30, x=initial_x)
         boxes.append(new_box)
+
+    # Create an instance of the Gripper and create Rectangle for later collision checking
+    gripper.x, gripper.y = haptic.x + haptic.width/2 - 5, haptic.y + haptic.width + 100 # with 100 being pendulum length
+    gripper_rect = pygame.Rect(gripper.get_rect())
 
     # drawing the conveyor belt
     pygame.draw.rect(screenVR, (100, 100, 100), (0, 300 + new_box.width, screenVR.get_width(), 35), 10, border_radius=8)
@@ -362,7 +369,7 @@ while run:
     for box in boxes:
 
         # If the haptic device is colliding and the user has pressed "grab", set the box in_collision state
-        if pendulum_stick.colliderect(box.get_rect()) and grab_box and haptic_free:
+        if gripper_rect.colliderect(box.get_rect()) and grab_box and haptic_free:
 
             grab_box = True
             box.picked = True
@@ -373,10 +380,13 @@ while run:
 
             #print("Sinus old vel: ", np.sin(velold[0]))     
             # Add initial angle to pendulum based on current picker velocity in x direction relative to moving boxes     
+            """
             swing_gain = 0.2
             pendulum_init_angle = swing_gain * (np.sin(velold[0]) + box.speed/3)
             print(pendulum_init_angle)
-            pendulum = Pendulum(length=100, angle=pendulum_init_angle, bob_mass = box.weight)
+            """
+            pendulum_angle = 0.2 # Better with steady angle
+            pendulum = Pendulum(length=100, angle=pendulum_angle, bob_mass=box.weight, scale_force_xy=(-5, -0.3))
 
             # First box has been picked, so game can start
             if not first_box_picked:
@@ -404,11 +414,12 @@ while run:
                 # Update the position of the pendulum
                 pendulum.update(dt)
                 
-                # Get the coordinates of the box
-                box.x, box.y = pendulum.get_bob_mass_coordinates(screenVR, [haptic.x + haptic.width/2, haptic.y + haptic.height/2] )
-                
+                # Update gripper coordinates
+                gripper.x, gripper.y = pendulum.get_bob_mass_coordinates(screenVR, [haptic.x+haptic.width/2-0.5*gripper.width, haptic.y+haptic.height-gripper.width])
+                box.x, box.y = gripper.x-0.5*box.width+0.5*gripper.width, gripper.y+gripper.width
+
                 #Draw the line from the haptics to the pendulum
-                pygame.draw.line(screenVR, (0,0,0), haptic.midbottom, (box.x + box.width/2, box.y), 2)
+                pygame.draw.line(screenVR, (0,0,0), haptic.midbottom, (gripper.x+0.5*gripper.width, gripper.y), 2)
                 
                 # Compute the force exerted by the pendulum
                 fp = pendulum.tension_force_components()
@@ -419,15 +430,19 @@ while run:
                 fm[1] += box.weight*acc[1]*meter_pixel_ratio
 
         else:
+            # If no box is picked, optionally hide the gripper or move it back to the neutral position
+            gripper.x, gripper.y = -100, -100  # Move off-screen or to a neutral position
             box.update()
 
         # Draw the box
-      
         box.draw(screenVR)
+        gripper.draw(screenVR)
         
     # If the haptic is free, draw the pendulum
     if haptic_free:
         pygame.draw.rect(screenVR,(0,0,0), pendulum_stick)
+        gripper.x, gripper.y = haptic.x + haptic.width/2 - 5, haptic.y + haptic.width + 100 # with 100 being pendulum length
+        gripper.draw(screenVR)
     
     # This part of the code has been placed here in order to render the forces after the update of the boxes state
     ######### Send forces to the device #########
@@ -454,7 +469,6 @@ while run:
     haptic.center = xh
     
     #########
-    
 
     ##Fuse it back together
     window.blit(screenHaptics, (0, 0))
