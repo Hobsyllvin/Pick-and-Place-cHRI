@@ -83,6 +83,8 @@ textstart = font.render('Pick the first box to begin', True, (0, 0, 0), (255, 25
 startRect = textstart.get_rect()
 startRect.topleft = (600+200, 200)
 
+targettext = pygame.font.Font('freesansbold.ttf', 10).render('target', True, (255, 255, 255))
+
 xc, yc = screenVR.get_rect().center  ##center of the screen
 
 ##initialize "real-time" clock
@@ -109,7 +111,7 @@ current_score = 0  # how many boxes were placed correctly
 
 start_time = False
 time_string = ""
-game_duration = 1 * 60 * 1000 # 120 seconds
+game_duration = 2 * 60 * 1000 # 120 seconds
 remaining_time =  game_duration
 
 current_box_weight = 0
@@ -431,8 +433,8 @@ while run:
             pendulum_init_angle = swing_gain * (np.sin(velold[0]) + box.speed/3)
             print(pendulum_init_angle)
             """
-            pendulum_angle = 0.2 # Better with steady angle
-            pendulum = Pendulum(length=100, angle=pendulum_angle, bob_mass=box.weight, scale_force_xy=(-5, -0.3))
+            pendulum_angle = 0.6 # Better with steady angle
+            pendulum = Pendulum(length=100, angle=pendulum_angle, bob_mass=box.weight, scale_force_xy=(-5, -0.5))
 
             # First box has been picked, so game can start
             if not first_box_picked:
@@ -566,6 +568,8 @@ while run:
     textinstruct = font.render("Press g to grab and r to release", True, (0, 0, 0), (255, 255, 255))
     window.blit(textinstruct, instructionRect)
 
+    # Create a text surface
+    window.blit(targettext, (1101, 205))
 
     pygame.display.flip()
     ##Slow down the loop to match FPS

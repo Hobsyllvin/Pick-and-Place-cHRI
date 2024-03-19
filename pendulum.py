@@ -29,8 +29,9 @@ class Pendulum:
         g = 9.81
         tension = (self.bob_mass * g) + (self.bob_mass * self.length * self.angular_velocity ** 2)
         
-        tension_x = tension * math.sin(self.angle) * self.scale_force_xy[0]
-        tension_y = tension * math.cos(self.angle) * self.scale_force_xy[1]
+        force_gain = 0.04
+        tension_x = tension * math.sin(self.angle) * self.scale_force_xy[0] * force_gain
+        tension_y = tension * math.cos(self.angle) * self.scale_force_xy[1] * force_gain
         return [tension_x, tension_y]
 
     def get_bob_mass_coordinates(self, screen, pivot):
