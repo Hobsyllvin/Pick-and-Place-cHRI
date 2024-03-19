@@ -38,6 +38,9 @@ import time
 import random
 from pendulum import Pendulum
 from gripper import Gripper
+from datetime import datetime
+import json
+import os
 
 ##################### General Pygame Init #####################
 ##initialize pygame window
@@ -106,10 +109,20 @@ current_score = 0  # how many boxes were placed correctly
 
 start_time = False
 time_string = ""
-game_duration = 2 * 60 * 1000 # 120 seconds
+game_duration = 1 * 60 * 1000 # 120 seconds
 remaining_time =  game_duration
 
 current_box_weight = 0
+
+# Obtain the current timestamp and format it for the filename
+current_time = datetime.now()
+filename = current_time.strftime("%Y-%m-%d_%H-%M-%S") + ".json"
+
+# Initialize empty dict to store the data
+data_entries = []
+last_log_time = 0
+
+force = np.zeros(2)
 
 ##################### Init Simulated haptic device #####################
 
@@ -249,8 +262,11 @@ while run:
             if event.key == ord('r'):
                 grab_box = False
 
-    # Calculate elapsed time
+    # Assuming start_ticks is defined earlier
+    # Ensure last_log_time is initialized properly as an integer
     if first_box_picked:
+        if 'last_log_time' not in globals():
+            last_log_time = 0  # Initialize on first pick
 
         elapsed_time = pygame.time.get_ticks() - start_ticks
         remaining_time = game_duration - elapsed_time  # 2 minutes in milliseconds - elapsed_time
@@ -260,11 +276,35 @@ while run:
 
         minutes = remaining_time // 60000
         seconds = (remaining_time // 1000) % 60
-        milliseconds = (remaining_time % 1000) // 10  # Get the last 3 digits and scale for two decimal places display
-        
-        # Format the time string
+        milliseconds = (remaining_time % 1000) // 10  # For display purposes
+
+        # Format the time string for display (if needed)
         time_string = "{:02d}:{:02d}:{:02d}".format(minutes, seconds, milliseconds)
-        start_time = True
+
+        elapsed_time_since_last_log = elapsed_time - last_log_time
+
+        avgforce = np.zeros(2)
+        force_timesteps = 0
+
+        avgforce[0] += np.abs(force[0])
+        avgforce[1] += np.abs(force[1])
+        force_timesteps += 1
+
+        # Store new data every 100ms
+        if elapsed_time_since_last_log >= 100:
+            # Update the last log time to the current elapsed time
+            last_log_time = elapsed_time
+
+            # Prepare the data dictionary
+            data = {
+                "timestamp": elapsed_time,
+                "score": current_score,  # Assuming current_score is defined
+                "forces": [avgforce[0]/force_timesteps, avgforce[1]/force_timesteps]  # Assuming fe is defined
+            }
+            data_entries.append(data)
+            
+            
+
     else:
         time_string = "02:00:00"
 
@@ -498,10 +538,24 @@ while run:
     if not first_box_picked:
         textstart = font.render("Pick up the first box to start", True, (0, 0, 0), (255, 255, 255))
         window.blit(textstart, startRect)
+
+    # Game is over
     if remaining_time == 0:
         textstart = font.render("Nice job!", True, (0, 0, 0), (255, 255, 255))
         startRect.topleft = (600+270, 180)
         window.blit(textstart, startRect)
+
+
+        # Ensure the directory exists, otherwise create it
+        if not os.path.exists("logdata"):
+            os.makedirs("logdata")
+
+        # Construct the file path
+        file_path = os.path.join("logdata", filename)
+        with open(file_path, "w") as file:
+            json.dump(data_entries, file, indent=4)
+
+
 
     texttime = font.render("Remaining time: " + time_string, True, (0, 0, 0), (255, 255, 255))
     window.blit(texttime, timeRect)
