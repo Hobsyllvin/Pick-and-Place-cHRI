@@ -11,7 +11,7 @@ scale_factor = 0.02 # This factor is used in order to scale from pixels to meter
                     # This ratio can be adjusted to make the velocity of the pendulum faster or slower (the smaller, the faster)
 
 class Pendulum:
-    def __init__(self, length, angle, angular_velocity=0.0, bob_mass=1.0, scale_force_xy=(-5, -0.3)):
+    def __init__(self, length, angle, angular_velocity=0.0, bob_mass=1.0, scale_force_xy=(-1, -0.3)):
         self.length = length
         self.angle = angle
         self.angular_velocity = angular_velocity
@@ -29,7 +29,7 @@ class Pendulum:
         g = 9.81
         tension = (self.bob_mass * g) + (self.bob_mass * self.length * self.angular_velocity ** 2)
         
-        force_gain = 0.04
+        force_gain = 0.03
         tension_x = tension * math.sin(self.angle) * self.scale_force_xy[0] * force_gain
         tension_y = tension * math.cos(self.angle) * self.scale_force_xy[1] * force_gain
         return [tension_x, tension_y]

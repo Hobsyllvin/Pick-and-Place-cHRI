@@ -83,7 +83,7 @@ textstart = font.render('Pick the first box to begin', True, (0, 0, 0), (255, 25
 startRect = textstart.get_rect()
 startRect.topleft = (600+200, 200)
 
-targettext = pygame.font.Font('freesansbold.ttf', 10).render('target', True, (255, 255, 255))
+targettext = pygame.font.Font('freesansbold.ttf', 10).render('', True, (255, 255, 255))
 
 xc, yc = screenVR.get_rect().center  ##center of the screen
 
@@ -111,7 +111,7 @@ current_score = 0  # how many boxes were placed correctly
 
 start_time = False
 time_string = ""
-game_duration = 1 * 30 * 1000 # 120 seconds
+game_duration = 2* 60* 1000 # 120 seconds
 remaining_time =  game_duration
 
 current_box_weight = 0
@@ -151,7 +151,10 @@ colorHaptic = cYellow
 xh = np.array(haptic.center)
 
 # platform
-platform = pygame.Rect(500, 200, 30, 20)
+def get_random_platform_coordinates():
+    return (random.randint(50,550), random.randint(150, 250))
+
+
 
 ##Set the old value to 0 to avoid jumps at init
 xhold = 0
@@ -244,6 +247,9 @@ meter_pixel_ratio = 0.0002645833 # m One pixel is moreless equal to 0.0002645833
 def get_random_weight():
     return random.uniform(0.2, 0.4) # Kg
 
+coordinates_platform = get_random_platform_coordinates()
+platform = pygame.Rect(coordinates_platform[0],coordinates_platform[1], 30, 20)
+
 # Create initial instance of the gripper, initialize off-screen
 gripper = Gripper(weight=0.2, width=10, x=-100, y=-100)
 
@@ -301,6 +307,7 @@ while run:
 
             # Prepare the data dictionary
             data = {
+                "with_weight_perception": with_weight_perception,
                 "timestamp": elapsed_time,
                 "score": current_score,  # Assuming current_score is defined
                 "forces": [avgforce[0]/force_timesteps, avgforce[1]/force_timesteps]  # Assuming fe is defined
@@ -411,14 +418,15 @@ while run:
     pygame.draw.rect(screenVR, (100, 100, 100), (0, 300 + new_box.width, screenVR.get_width(), 35), 10, border_radius=8)
 
     # drawing the platform
-    pygame.draw.rect(screenVR, cplatformGreen, platform)
+    pygame.draw.rect(screenVR, "red", platform)
 
     # Move, grab and draw the boxes
     for box in boxes:
 
         # If the haptic device is colliding and the user has pressed "grab", set the box in_collision state
         if gripper_rect.colliderect(box.get_rect()) and grab_box and haptic_free:
-
+            coordinates_platform = get_random_platform_coordinates()
+            platform = pygame.Rect(coordinates_platform[0],coordinates_platform[1], 30, 20)
             grab_box = True
             box.picked = True
 
@@ -445,6 +453,7 @@ while run:
             haptic_free = False
 
         if box.picked:
+
 
             # Highlight the platform so the user knows he is in the right spot
             if platform.colliderect(box.get_rect()):
