@@ -111,7 +111,7 @@ current_score = 0  # how many boxes were placed correctly
 
 start_time = False
 time_string = ""
-game_duration = 2 * 60 * 1000 # 120 seconds
+game_duration = 1 * 30 * 1000 # 120 seconds
 remaining_time =  game_duration
 
 current_box_weight = 0
@@ -125,6 +125,8 @@ data_entries = []
 last_log_time = 0
 
 force = np.zeros(2)
+
+with_weight_perception = True
 
 ##################### Init Simulated haptic device #####################
 
@@ -240,7 +242,7 @@ g = 9.8  # gravity constant m/s^2
 meter_pixel_ratio = 0.0002645833 # m One pixel is moreless equal to 0.0002645833 m
 
 def get_random_weight():
-    return random.uniform(0.2, 0.8) # Kg
+    return random.uniform(0.2, 0.4) # Kg
 
 # Create initial instance of the gripper, initialize off-screen
 gripper = Gripper(weight=0.2, width=10, x=-100, y=-100)
@@ -505,7 +507,15 @@ while run:
     if port:
        # fe[1] = -fe[1]  ##Flips the force on the Y=axis 
         force[1] = -force[1]
-
+        if not with_weight_perception:
+           
+            # Add pseudohaptics
+            dxh = (k / b * (
+                    xm - xh) / window_scale - force / b)  ####replace with the valid expression that takes all the forces into account
+            dxh = dxh * window_scale
+            xh = np.round(xh + dxh)  ##update new positon of the end effector
+            # Set force to 0 so the haply does not generate them
+            force = np.zeros(2)
         ##Update the forces of the device
         device.set_device_torques(force)
         device.device_write_torques()
