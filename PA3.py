@@ -245,7 +245,11 @@ g = 9.8  # gravity constant m/s^2
 meter_pixel_ratio = 0.0002645833 # m One pixel is moreless equal to 0.0002645833 m
 
 def get_random_weight():
-    return random.uniform(0.2, 0.4) # Kg
+    return random.uniform(0.2, 0.7)#random.uniform(0.2, 0.4) # Kg
+
+def get_random_frequency_gain():
+    number = random.randint(4, 10)
+    return number
 
 coordinates_platform = get_random_platform_coordinates()
 platform = pygame.Rect(coordinates_platform[0],coordinates_platform[1], 30, 20)
@@ -444,7 +448,7 @@ while run:
             print(pendulum_init_angle)
             """
             pendulum_angle = 0.6 # Better with steady angle
-            pendulum = Pendulum(length=100, angle=pendulum_angle, bob_mass=box.weight, scale_force_xy=(-5, -0.5))
+            pendulum = Pendulum(length=100, angle=pendulum_angle, bob_mass=box.weight, scale_force_xy=(-5, -0.5), frequency_gain = get_random_frequency_gain())
 
             # First box has been picked, so game can start
             if not first_box_picked:
