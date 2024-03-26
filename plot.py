@@ -5,6 +5,31 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def plot_score(timestamps, scores):
+
+
+    # Ensure timestamps and scores are numpy arrays for compatibility with UnivariateSpline
+    timestamps_np = np.array(timestamps)
+    scores_np = np.array(scores)
+    # The 's' parameter controls the amount of smoothing. A small value of 's' means more smoothing.
+    # If 's' is None, s=len(x) which is the default and uses a residual-based estimation.
+    spline = UnivariateSpline(timestamps_np, scores_np, s=50)
+
+    # Generate a dense range of timestamps for a smooth curve
+    dense_timestamps = np.linspace(min(timestamps_np), max(timestamps_np), 1000)
+    smooth_scores = spline(dense_timestamps)  # Evaluate the spline at the dense timestamps
+
+    # Plotting
+    plt.figure(figsize=(10, 6))
+    plt.plot(dense_timestamps, smooth_scores, label='Smooth Curve')
+    plt.title('Score vs Timestamp')
+    plt.xlabel('Timestamp, s')
+    plt.ylabel('Score')
+    plt.grid(True)
+    plt.legend()
+    plt.savefig('plots/score_vs_timestamp.png')  # Saving the plot to a file in the specified path
+    plt.show()
+
+    """
     # Plotting Score vs Timestamp
     plt.figure(figsize=(10, 6))
     plt.plot(timestamps, scores)
@@ -14,20 +39,12 @@ def plot_score(timestamps, scores):
     plt.grid(True)
     plt.savefig('plots/score_vs_timestamp.png') # Saving the plot to a file in the specified path
     plt.show()
+    """
 
-def normalize_time(timestamps):
-    new_min = 0
+def normalize_data(data):
     new_max = 120000
-
-    # Min and max values from the original timestamps
-    original_min = min(timestamps)
-    original_max = max(timestamps)
-
-    # Normalize the timestamps
-    normalized_timestamps = [(x - original_min) * (new_max - new_min) / (original_max - original_min) + new_min for x in
-                             timestamps]
-    normalized_timestamps = [x / 1000 for x in normalized_timestamps] # in seconds
-    return normalized_timestamps
+    filtered_data = [data for data in data if data['timestamp'] <= new_max]
+    return filtered_data
 
 def plot_derivative(timestamps, scores):
     # Convert lists to numpy arrays for easier mathematical operations
@@ -74,13 +91,13 @@ for filename in os.listdir(directory):
             data = json.load(file)
             all_data.append(data)
 
-for data in all_data:
+for data in all_data[:2]:
     # Create arrays for forces, timestamps and scores
-    timestamps = [item['timestamp'] for item in data]
-    scores = [item['score'] for item in data]
-    forces = [item['forces'] for item in data]
-    with_weight_perception_values = [item['with_weight_perception'] for item in data]
-    norm_time = normalize_time(timestamps) # in seconds
-    plot_score(norm_time, scores)
-    plot_derivative(norm_time, scores)
+    filtered_data = normalize_data(data)
+    timestamps = [item['timestamp'] for item in filtered_data]
+    scores = [item['score'] for item in filtered_data]
+    forces = [item['forces'] for item in filtered_data]
+    with_weight_perception_values = [item['with_weight_perception'] for item in filtered_data]
+    plot_score(timestamps, scores)
+    plot_derivative(timestamps, scores)
 
