@@ -41,6 +41,12 @@ def plot_derivative(timestamps, scores):
     # Compute the derivative of score with respect to time (change in score over change in time)
     score_derivative = score_differences / time_differences
 
+    # Eliminating zero-derivative terms
+    for i in range(1, len(score_derivative)):
+        if score_derivative[i] == 0:
+            score_derivative[i] = score_derivative[i-1]
+
+
     # Since the derivative is calculated between points, we'll use the midpoints of timestamps for plotting
     timestamps_midpoints = (timestamps_np[:-1] + timestamps_np[1:]) / 2
 
