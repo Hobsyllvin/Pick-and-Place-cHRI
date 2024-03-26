@@ -91,13 +91,29 @@ for filename in os.listdir(directory):
             data = json.load(file)
             all_data.append(data)
 
-for data in all_data[:2]:
+with_weight_timestamps = []
+with_weight_scores = []
+without_weight_timestamps = []
+without_weight_scores = []
+
+for data in all_data:
     # Create arrays for forces, timestamps and scores
     filtered_data = normalize_data(data)
     timestamps = [item['timestamp'] for item in filtered_data]
     scores = [item['score'] for item in filtered_data]
     forces = [item['forces'] for item in filtered_data]
     with_weight_perception_values = [item['with_weight_perception'] for item in filtered_data]
+
+    if with_weight_perception_values[0]:
+        with_weight_timestamps.append(timestamps)
+        with_weight_scores.append(scores)
+    else:
+        without_weight_timestamps.append(timestamps)
+        without_weight_scores.append(scores)
+
+
     plot_score(timestamps, scores)
     plot_derivative(timestamps, scores)
 
+print(len(without_weight_scores))
+print(len(with_weight_scores))
