@@ -2,11 +2,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import json
 import os
+from scipy.optimize import curve_fit
+
 
 def normalize_data(data):
     new_max = 120000
     filtered_data = [data for data in data if data['timestamp'] <= new_max]
     return filtered_data
+
 
 def load_and_process_data(weight_timestamps, weight_score):
     """
@@ -20,7 +23,7 @@ def load_and_process_data(weight_timestamps, weight_score):
     """
 
     # Variables to keep track of the last score and timestamp
-   
+
     completion_times = []
 
     for i in range(len(weight_timestamps)):
@@ -35,12 +38,13 @@ def load_and_process_data(weight_timestamps, weight_score):
                 # Calculate the completion time and update the list
                 completion_time = (current_timestamp - last_timestamp) / 1000.0
                 completion_times.append((current_score, completion_time))
-                
+
                 # Update last score and timestamp for the next iteration
                 last_score = current_score
                 last_timestamp = current_timestamp
 
     return completion_times
+
 
 def plot_with_trendline(completion_times_without, completion_times_with):
     """
@@ -50,20 +54,36 @@ def plot_with_trendline(completion_times_without, completion_times_with):
     - completion_times: A list of tuples containing (score, completion time).
     """
     # Unpack the completion times into separate lists
-    scores, times = zip(*completion_times_without)
+    scores_without, times_without = zip(*completion_times_without)
     scores_with, times_with = zip(*completion_times_with)
 
     # Create a scatter plot
-    plt.scatter(scores, times, label='Completion Time Without Weight', color='blue', s=10)
     plt.scatter(scores_with, times_with, label='Completion Time With Weight', color='red', s=10)
+    plt.scatter(scores_without, times_without, label='Completion Time Without Weight', color='blue', s=10)
 
+    # Logarithmic function to fit
+    def log_func(x, a, b):
+        return a + b * np.log(x)
+
+    # Fit the logarithmic model
+    params_without, covariance_without = curve_fit(log_func, scores_without, times_without)
+    params_with, covariance_with = curve_fit(log_func, scores_with, times_with)
+
+    # Plot the fitted curve
+    plt.plot(np.unique(scores_without), log_func(np.unique(scores_without), *params_without), label='Log curve without weight',
+             color='blue')
+    plt.plot(np.unique(scores_with), log_func(np.unique(scores_with), *params_with), label='Log curve with weight',
+             color='red')
+
+    '''
     # Fit a trendline
-    z = np.polyfit(scores, times, 1)
-    z_weight = np.polyfit(scores, times, 1)
+    z = np.polyfit(scores, times, 5)
+    z_weight = np.polyfit(scores, times, 5)
     p = np.poly1d(z)
     p_weight = np.poly1d(z_weight)
-    plt.plot(scores, p(scores), "b--", label='Trendline Without Weight')
-    plt.plot(scores_with, p_weight(scores_with), "r--", label='Trendline With Weight')
+    plt.plot(np.unique(scores), p(np.unique(scores)), "b--", label='Trendline Without Weight')
+    plt.plot(np.unique(scores_with), p_weight(np.unique(scores_with)), "r--", label='Trendline With Weight')
+    '''
 
     # Labeling the plot
     plt.title('Score vs. Completion Time')
@@ -75,8 +95,16 @@ def plot_with_trendline(completion_times_without, completion_times_with):
     # Show the plot
     plt.show()
 
-# Example usage
-file_path = 'logdata/2024-03-20_14-53-40.json'
+    # Box plots
+    # Creating the box plot
+    plt.figure(figsize=(8, 6))
+    plt.boxplot([times_without, times_with], labels=['Without Weight', 'With Weight'])
+
+    plt.title('Completion Times Box Plot')
+    plt.ylabel('Completion Time (s)')
+    plt.grid(True)
+    plt.show()
+
 
 directory = 'logdata'
 all_data = []
@@ -97,8 +125,6 @@ with_weight_scores = []
 without_weight_timestamps = []
 without_weight_scores = []
 
-
-
 for data in all_data:
     # Create arrays for forces, timestamps and scores
     filtered_data = normalize_data(data)
@@ -114,7 +140,6 @@ for data in all_data:
     else:
         without_weight_timestamps.append(timestamps)
         without_weight_scores.append(scores)
-
 
 completion_times_without = load_and_process_data(without_weight_timestamps, without_weight_scores)
 completion_times_with = load_and_process_data(with_weight_timestamps, with_weight_scores)
