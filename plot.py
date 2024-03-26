@@ -4,9 +4,8 @@ from scipy.interpolate import UnivariateSpline
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def plot_score(timestamps, scores):
-
-
     # Ensure timestamps and scores are numpy arrays for compatibility with UnivariateSpline
     timestamps_np = np.array(timestamps)
     scores_np = np.array(scores)
@@ -29,22 +28,12 @@ def plot_score(timestamps, scores):
     plt.savefig('plots/score_vs_timestamp.png')  # Saving the plot to a file in the specified path
     plt.show()
 
-    """
-    # Plotting Score vs Timestamp
-    plt.figure(figsize=(10, 6))
-    plt.plot(timestamps, scores)
-    plt.title('Score vs Timestamp')
-    plt.xlabel('Timestamp, s')
-    plt.ylabel('Score')
-    plt.grid(True)
-    plt.savefig('plots/score_vs_timestamp.png') # Saving the plot to a file in the specified path
-    plt.show()
-    """
 
 def normalize_data(data):
     new_max = 120000
     filtered_data = [data for data in data if data['timestamp'] <= new_max]
     return filtered_data
+
 
 def plot_derivative(timestamps, scores):
     # Convert lists to numpy arrays for easier mathematical operations
@@ -61,8 +50,7 @@ def plot_derivative(timestamps, scores):
     # Eliminating zero-derivative terms
     for i in range(1, len(score_derivative)):
         if score_derivative[i] == 0:
-            score_derivative[i] = score_derivative[i-1]
-
+            score_derivative[i] = score_derivative[i - 1]
 
     # Since the derivative is calculated between points, we'll use the midpoints of timestamps for plotting
     timestamps_midpoints = (timestamps_np[:-1] + timestamps_np[1:]) / 2
@@ -76,6 +64,7 @@ def plot_derivative(timestamps, scores):
     plt.grid(True)
     plt.savefig('plots/derivative_vs_timestamp.png')  # Saving the plot to a file in the specified path
     plt.show()
+
 
 directory = 'logdata'
 all_data = []
@@ -104,16 +93,5 @@ for data in all_data:
     forces = [item['forces'] for item in filtered_data]
     with_weight_perception_values = [item['with_weight_perception'] for item in filtered_data]
 
-    if with_weight_perception_values[0]:
-        with_weight_timestamps.append(timestamps)
-        with_weight_scores.append(scores)
-    else:
-        without_weight_timestamps.append(timestamps)
-        without_weight_scores.append(scores)
-
-
     plot_score(timestamps, scores)
     plot_derivative(timestamps, scores)
-
-print(len(without_weight_scores))
-print(len(with_weight_scores))
