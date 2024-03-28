@@ -6,11 +6,14 @@ README
 
 - pendulum.py: Python file containing the definition of the "Pendulum" class. It simulates the dynamics of the pendulum. 
 
-- gripper.py: Pyhton file containing the definition of the "Gripper" class.
+- gripper.py: Python file containing the definition of the "Gripper" class.
 
-- plot.py: Python file containing the functions used to plot the results.
+- plot_scores.py: Python file containing the functions used to plot the results for individual participants
 
--logdata: Folder containing the recorded data of each completed game. Each experiment is saved in a JSON file containing the score at each timestamp.
+- plot_learning_curve.py: Python file containing the functions used to plot the learning curves for the groups of participants 
+  with and without haptic feedback. Also, plots the box plots
+
+- logdata: Folder containing the recorded data of each completed game. Each experiment is saved in a JSON file containing the score at each timestamp.
 
 - pyshape.py, pyhapi.py and pantograph.py: Modules called by PA3.py to run the Haply.
 
