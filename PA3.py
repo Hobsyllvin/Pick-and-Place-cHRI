@@ -69,11 +69,11 @@ textRect.topleft = (10, 10)
 
 textTime = font.render('Remaining time', True, (0, 0, 0), (255, 255, 255))
 timeRect = textTime.get_rect()
-timeRect.topleft = (600+20, 20)
+timeRect.topleft = (600 + 20, 20)
 
 score = font.render('Virtual Game Score', True, (0, 0, 0), (255, 255, 255))
 scoreRect = score.get_rect()
-scoreRect.topleft = (600+20, 40)
+scoreRect.topleft = (600 + 20, 40)
 
 textinstruct = font.render('Press g and press r', True, (0, 0, 0), (255, 255, 255))
 instructionRect = textinstruct.get_rect()
@@ -81,7 +81,7 @@ instructionRect.topleft = (760, 372)
 
 textstart = font.render('Pick the first box to begin', True, (0, 0, 0), (255, 255, 255))
 startRect = textstart.get_rect()
-startRect.topleft = (600+200, 200)
+startRect.topleft = (600 + 200, 200)
 
 targettext = pygame.font.Font('freesansbold.ttf', 10).render('', True, (255, 255, 255))
 
@@ -102,18 +102,19 @@ cYellow = (255, 255, 0)
 cboxRed = (190, 30, 30)
 cboxBlue = (30, 30, 190)
 cboxGreen = (30, 190, 30)
-cplatformGreen = (20, 170, 30) # Make it a bit darker than the smaller boxes
+cplatformGreen = (20, 170, 30)  # Make it a bit darker than the smaller boxes
 cplatformTouched = (40, 200, 40)
 
+# Game parameters
+start_time = False
+time_string = ""
+game_duration = 2 * 60 * 1000  # 120 seconds
+remaining_time = game_duration
+
+# Initial boxes parameters
 boxes = []  # List to hold box instances
 initial_x = -35  # Initial x-coord of boxes
 current_score = 0  # how many boxes were placed correctly
-
-start_time = False
-time_string = ""
-game_duration = 2* 60* 1000 # 120 seconds
-remaining_time =  game_duration
-
 current_box_weight = 0
 
 # Obtain the current timestamp and format it for the filename
@@ -123,9 +124,9 @@ filename = current_time.strftime("%Y-%m-%d_%H-%M-%S") + ".json"
 # Initialize empty dict to store the data
 data_entries = []
 last_log_time = 0
-
 force = np.zeros(2)
 
+# Weight perception toggle
 with_weight_perception = True
 
 ##################### Init Simulated haptic device #####################
@@ -149,12 +150,6 @@ cursor = pygame.Rect(0, 0, 5, 5)
 colorHaptic = cYellow
 
 xh = np.array(haptic.center)
-
-# platform
-def get_random_platform_coordinates():
-    return (random.randint(50,550), random.randint(150, 250))
-
-
 
 ##Set the old value to 0 to avoid jumps at init
 xhold = 0
@@ -224,8 +219,6 @@ window_scale = 3
 
 ##################### Main Loop #####################
 ##Run the main loop
-##TODO - Perhaps it needs to be changed by a timer for real-time see: 
-##https://www.pygame.org/wiki/ConstantGameSpeed
 
 run = True
 ongoingCollision = False
@@ -241,24 +234,28 @@ haptic_free = True  # This variable is needed to avoid interacting with other bo
 
 g = 9.8  # gravity constant m/s^2
 
- # Compute acceleration
-meter_pixel_ratio = 0.0002645833 # m One pixel is moreless equal to 0.0002645833 m
+# Compute acceleration
+meter_pixel_ratio = 0.0002645833  # m One pixel is moreless equal to 0.0002645833 m
 
+
+# Defining weight and oscillation frequency for the boxes
 def get_random_weight():
-    return random.uniform(0.2, 0.7)#random.uniform(0.2, 0.4) # Kg
+    return random.uniform(0.2, 0.7)  # random.uniform(0.2, 0.4) # Kg
+
 
 def get_random_frequency_gain():
     number = random.randint(4, 10)
     return number
 
-coordinates_platform = get_random_platform_coordinates()
-platform = pygame.Rect(coordinates_platform[0],coordinates_platform[1], 30, 20)
+
+# Setting the coordinated of the platform (target)
+coordinates_platform = (random.randint(50, 550), random.randint(150, 250))
+platform = pygame.Rect(coordinates_platform[0], coordinates_platform[1], 30, 20)
 
 # Create initial instance of the gripper, initialize off-screen
 gripper = Gripper(weight=0.2, width=10, x=-100, y=-100)
 
-
-
+# Running the game
 while run:
 
     #########Process events  (Mouse, Keyboard etc...)#########
@@ -272,7 +269,7 @@ while run:
             if event.key == ord('m'):
                 debugToggle = not debugToggle
             if event.key == ord('g'):
-                grab_box = True                               
+                grab_box = True
             if event.key == ord('r'):
                 grab_box = False
 
@@ -314,11 +311,11 @@ while run:
                 "with_weight_perception": with_weight_perception,
                 "timestamp": elapsed_time,
                 "score": current_score,  # Assuming current_score is defined
-                "forces": [avgforce[0]/force_timesteps, avgforce[1]/force_timesteps]  # Assuming fe is defined
+                "forces": [avgforce[0] / force_timesteps, avgforce[1] / force_timesteps]  # Assuming fe is defined
             }
             data_entries.append(data)
-            
-            
+
+
 
     else:
         time_string = "02:00:00"
@@ -346,35 +343,29 @@ while run:
         cursor.center = pygame.mouse.get_pos()
         xm = np.clip(np.array(cursor.center), 0, 599)
 
-    '''*********** Student should fill in ***********'''
-
+    # Initializing forces
     dt = 1 / FPS
     fe = np.zeros(2)  ##Environment force is set to 0 initially.
     fb = np.zeros(2)  ##Damping force is initialized with 0
     fm = np.zeros(2)  ##Force induced by mass is initialized with 0
     fp = np.zeros(2)  ## Pendulum force
-    
-    ##Replace 
 
     ######### Compute forces ########
-
     # Damping
     be = 0.001  # define damping ratio
 
     vel = (xh - xhold) / dt  # velocity for damping
 
-
     fb[0] = be * vel[0]
     fb[1] = be * vel[1]
-    
-    
+
     acc = (vel - velold)
-    
+
     ##Update old samples for velocity computation
     xhold = xh
     xmold = xm
     velold = vel
-   
+
     ######### Graphical output #########
     ##Render the haptic surface
     screenHaptics.fill(cWhite)
@@ -386,7 +377,7 @@ while run:
                                  255))  # if collide else (255, 255, 255)
 
     pygame.draw.rect(screenHaptics, colorMaster, haptic, border_radius=4)
-    
+
     ######### Robot visualization ###################
     # update individual link position
     if robotToggle:
@@ -396,27 +387,24 @@ while run:
     screenHaptics.blit(hhandle, (haptic.topleft[0], haptic.topleft[1]))
     pygame.draw.line(screenHaptics, (0, 0, 0), (haptic.center), (haptic.center + 2 * k * (xm - xh)))
 
-    ##Render the VR surface
+    ## Render the VR surface
     screenVR.fill(cWhite)
-    '''*********** Student should fill in ***********'''
-    ### here goes the visualisation of the VR sceen. 
-    ### Use pygame.draw.rect(screenVR, color, rectangle) to render rectangles. 
+    ### Visualisation of the VR sceen.
     pygame.draw.rect(screenVR, cDarkblue, haptic, border_radius=8)
     # line(surface, color, start_pos, end_pos)
     pygame.draw.line(screenVR, (0, 0, 0), (0, 0), (0, 400))
-    
+
     # Create stick of pendulum
-    pendulum_stick = pygame.Rect(haptic.x + haptic.width/2 - 1, haptic.y + haptic.height, 2, 100)
-                    
+    pendulum_stick = pygame.Rect(haptic.x + haptic.width / 2 - 1, haptic.y + haptic.height, 2, 100)
+
     # Creating box objects
     if len(boxes) == 0 or (boxes[-1].x - initial_x) >= (boxes[-1].width * 4):  # 3 times width + box width itself
         new_box = Box(weight=get_random_weight(), width=30, x=initial_x)
         boxes.append(new_box)
 
     # Create an instance of the Gripper and create Rectangle for later collision checking
-    gripper.x, gripper.y = haptic.x + haptic.width/2 - 5, haptic.y + haptic.width + 100 # with 100 being pendulum length
+    gripper.x, gripper.y = haptic.x + haptic.width / 2 - 5, haptic.y + haptic.width + 100  # with 100 being pendulum length
     gripper_rect = pygame.Rect(gripper.get_rect())
-    
 
     # drawing the conveyor belt
     pygame.draw.rect(screenVR, (100, 100, 100), (0, 300 + new_box.width, screenVR.get_width(), 35), 10, border_radius=8)
@@ -429,35 +417,28 @@ while run:
 
         # If the haptic device is colliding and the user has pressed "grab", set the box in_collision state
         if gripper_rect.colliderect(box.get_rect()) and grab_box and haptic_free:
-            coordinates_platform = get_random_platform_coordinates()
-            platform = pygame.Rect(coordinates_platform[0],coordinates_platform[1], 30, 20)
+            coordinates_platform = (random.randint(50, 550), random.randint(150, 250))
+            platform = pygame.Rect(coordinates_platform[0], coordinates_platform[1], 30, 20)
             grab_box = True
             box.picked = True
 
             current_box_weight = box.weight
-            
-            # Create the pendulum
-            # The length is in pixels
-            # An initial angle is needed, if not it does not swing
 
-            #print("Sinus old vel: ", np.sin(velold[0]))     
-            # Add initial angle to pendulum based on current picker velocity in x direction relative to moving boxes     
-            """
-            swing_gain = 0.2
-            pendulum_init_angle = swing_gain * (np.sin(velold[0]) + box.speed/3)
-            print(pendulum_init_angle)
-            """
-            pendulum_angle = 0.6 # Better with steady angle
-            pendulum = Pendulum(length=100, angle=pendulum_angle, bob_mass=box.weight, scale_force_xy=(-5, -0.5), frequency_gain = get_random_frequency_gain())
+            # Create the pendulum
+
+            # Add initial angle to pendulum based on current picker velocity
+            # in x direction relative to moving boxes
+            pendulum_angle = 0.6  # Better with steady angle
+            pendulum = Pendulum(length=100, angle=pendulum_angle, bob_mass=box.weight, scale_force_xy=(-5, -0.5),
+                                frequency_gain=get_random_frequency_gain())
 
             # First box has been picked, so game can start
             if not first_box_picked:
-                start_ticks = pygame.time.get_ticks() 
-                first_box_picked = True 
+                start_ticks = pygame.time.get_ticks()
+                first_box_picked = True
             haptic_free = False
 
         if box.picked:
-
 
             # Highlight the platform so the user knows he is in the right spot
             if platform.colliderect(box.get_rect()):
@@ -469,7 +450,7 @@ while run:
                 box.picked = False
                 haptic_free = True
 
-                # correct placement detection (basic)
+                # Correct placement detection (basic)
                 if platform.colliderect(box.get_rect()) and remaining_time != 0:
                     current_score += 1
 
@@ -477,24 +458,24 @@ while run:
 
             # If the box is still in_collision and grabbed
             else:
-                
+
                 # Update the position of the pendulum
                 pendulum.update(dt)
-                
-                # Update gripper coordinates
-                gripper.x, gripper.y = pendulum.get_bob_mass_coordinates(screenVR, [haptic.x+haptic.width/2-0.5*gripper.width, haptic.y+haptic.height-gripper.width])
-                box.x, box.y = gripper.x-0.5*box.width+0.5*gripper.width, gripper.y+gripper.width
 
-                #Draw the line from the haptics to the pendulum
-                pygame.draw.line(screenVR, (0,0,0), haptic.midbottom, (gripper.x+0.5*gripper.width, gripper.y), 2)
-                
+                # Update gripper coordinates
+                gripper.x, gripper.y = pendulum.get_bob_mass_coordinates(screenVR, [
+                    haptic.x + haptic.width / 2 - 0.5 * gripper.width, haptic.y + haptic.height - gripper.width])
+                box.x, box.y = gripper.x - 0.5 * box.width + 0.5 * gripper.width, gripper.y + gripper.width
+
+                # Draw the line from the haptics to the pendulum
+                pygame.draw.line(screenVR, (0, 0, 0), haptic.midbottom, (gripper.x + 0.5 * gripper.width, gripper.y), 2)
+
                 # Compute the force exerted by the pendulum
                 fp = pendulum.tension_force_components()
-                
+
                 # Compute inertia force
-                # If we do not convert the acceleration to m, the fm is huge
-                fm[0] += box.weight*acc[0]*meter_pixel_ratio
-                fm[1] += box.weight*acc[1]*meter_pixel_ratio
+                fm[0] += box.weight * acc[0] * meter_pixel_ratio
+                fm[1] += box.weight * acc[1] * meter_pixel_ratio
 
         else:
             # If no box is picked, optionally hide the gripper or move it back to the neutral position
@@ -504,27 +485,23 @@ while run:
         # Draw the box
         box.draw(screenVR)
         screenVR.blit(gripper_closed, (gripper.x, gripper.y))
-        #gripper.draw(screenVR)
-        
+
     # If the haptic is free, draw the pendulum
     if haptic_free:
-        pygame.draw.rect(screenVR,(0,0,0), pendulum_stick)
-        gripper.x, gripper.y = haptic.x + haptic.width/2 - 5, haptic.y + haptic.width + 100 # with 100 being pendulum length
+        pygame.draw.rect(screenVR, (0, 0, 0), pendulum_stick)
+        gripper.x, gripper.y = haptic.x + haptic.width / 2 - 5, haptic.y + haptic.width + 100  # with 100 being pendulum length
         screenVR.blit(gripper_open, (gripper.x, gripper.y))
-        #gripper.draw(screenVR)
-    
-    # This part of the code has been placed here in order to render the forces after the update of the boxes state
+
+    # Render the forces after the update of the boxes state
     ######### Send forces to the device #########
-    force = fe + fb + fm + fp # sum up forces
-    
+    force = fe + fb + fm + fp  # sum up forces
+
     if port:
-       # fe[1] = -fe[1]  ##Flips the force on the Y=axis 
         force[1] = -force[1]
         if not with_weight_perception:
-           
             # Add pseudohaptics
             dxh = (k / b * (
-                    xm - xh) / window_scale - force / b)  ####replace with the valid expression that takes all the forces into account
+                    xm - xh) / window_scale - force / b)
             dxh = dxh * window_scale
             xh = np.round(xh + dxh)  ##update new positon of the end effector
             # Set force to 0 so the haply does not generate them
@@ -536,7 +513,6 @@ while run:
         time.sleep(0.001)
     else:
         ######### Update the positions according to the forces ########
-        ##Compute simulation (here there is no inertia)
         ##If the haply is connected xm=xh and dxh = 0
         dxh = (k / b * (
                 xm - xh) / window_scale - force / b)  ####replace with the valid expression that takes all the forces into account
@@ -544,19 +520,17 @@ while run:
         xh = np.round(xh + dxh)  ##update new positon of the end effector
 
     haptic.center = xh
-    
-    #########
 
     ##Fuse it back together
     window.blit(screenHaptics, (0, 0))
     window.blit(screenVR, (600, 0))
 
-    ##Print status in  overlay
+    ##Print status in overlay
     if debugToggle:
         text = font.render("FPS = " + str(round(clock.get_fps())) + \
                            "  xm = " + str(np.round(10 * xm) / 10) + \
                            "  fe = " + str(np.round(10 * fe) / 10) + \
-                           "  box_weight = " + str(np.round(10*current_box_weight) / 10)
+                           "  box_weight = " + str(np.round(10 * current_box_weight) / 10)
                            , True, (0, 0, 0), (255, 255, 255))
         window.blit(text, textRect)
 
@@ -567,9 +541,8 @@ while run:
     # Game is over
     if remaining_time == 0:
         textstart = font.render("Nice job!", True, (0, 0, 0), (255, 255, 255))
-        startRect.topleft = (600+270, 180)
+        startRect.topleft = (600 + 270, 180)
         window.blit(textstart, startRect)
-
 
         # Ensure the directory exists, otherwise create it
         if not os.path.exists("logdata"):
@@ -580,8 +553,7 @@ while run:
         with open(file_path, "w") as file:
             json.dump(data_entries, file, indent=4)
 
-
-
+    # Display game time, score and instructions
     texttime = font.render("Remaining time: " + time_string, True, (0, 0, 0), (255, 255, 255))
     window.blit(texttime, timeRect)
 

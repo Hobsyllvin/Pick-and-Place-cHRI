@@ -4,13 +4,20 @@ import json
 import os
 from scipy.optimize import curve_fit
 
+'''
+This code plots the combined scores from all participants, 
+draws the learning curves for with and without haptic feedback groups and plots box plots for both of them
+'''
 
+
+# Normalizing the data to get rid of after-game time
 def normalize_data(data):
     new_max = 120000
     filtered_data = [data for data in data if data['timestamp'] <= new_max]
     return filtered_data
 
 
+# Processing json files
 def load_and_process_data(weight_timestamps, weight_score):
     """
     Load data from a JSON file and process it to calculate completion times.
@@ -23,7 +30,6 @@ def load_and_process_data(weight_timestamps, weight_score):
     """
 
     # Variables to keep track of the last score and timestamp
-
     completion_times = []
 
     for i in range(len(weight_timestamps)):
@@ -48,7 +54,7 @@ def load_and_process_data(weight_timestamps, weight_score):
 
 def plot_with_trendline(completion_times_without, completion_times_with):
     """
-    Creates a scatter plot with the completion times and fits a trendline.
+    Creates a scatter plot with the completion times and fits a logarithmic trendline.
 
     Parameters:
     - completion_times: A list of tuples containing (score, completion time).
@@ -70,20 +76,11 @@ def plot_with_trendline(completion_times_without, completion_times_with):
     params_with, covariance_with = curve_fit(log_func, scores_with, times_with)
 
     # Plot the fitted curve
-    plt.plot(np.unique(scores_without), log_func(np.unique(scores_without), *params_without), label='Log curve without weight',
+    plt.plot(np.unique(scores_without), log_func(np.unique(scores_without), *params_without),
+             label='Log curve without weight',
              color='blue')
     plt.plot(np.unique(scores_with), log_func(np.unique(scores_with), *params_with), label='Log curve with weight',
              color='red')
-
-    '''
-    # Fit a trendline
-    z = np.polyfit(scores, times, 5)
-    z_weight = np.polyfit(scores, times, 5)
-    p = np.poly1d(z)
-    p_weight = np.poly1d(z_weight)
-    plt.plot(np.unique(scores), p(np.unique(scores)), "b--", label='Trendline Without Weight')
-    plt.plot(np.unique(scores_with), p_weight(np.unique(scores_with)), "r--", label='Trendline With Weight')
-    '''
 
     # Labeling the plot
     plt.title('Score vs. Completion Time')
@@ -91,11 +88,10 @@ def plot_with_trendline(completion_times_without, completion_times_with):
     plt.ylabel('Completion Time (s)')
     plt.legend()
     plt.grid(True)
+    plt.savefig(f'plots/learning_curve.png')  # Saving the plot to a file in the specified path
+    plt.show()  # Show the plot
 
-    # Show the plot
-    plt.show()
-
-    # Box plots
+    # Box plots for both groups
     # Creating the box plot
     plt.figure(figsize=(8, 6))
     plt.boxplot([times_without, times_with], labels=['Without Weight', 'With Weight'])
@@ -103,9 +99,11 @@ def plot_with_trendline(completion_times_without, completion_times_with):
     plt.title('Completion Times Box Plot')
     plt.ylabel('Completion Time (s)')
     plt.grid(True)
+    plt.savefig(f'plots/box_plot.png')  # Saving the plot to a file in the specified path
     plt.show()
 
 
+# Defining the directory of the json files
 directory = 'logdata'
 all_data = []
 
@@ -120,11 +118,13 @@ for filename in os.listdir(directory):
             data = json.load(file)
             all_data.append(data)
 
+# Defining lists of timestamps and corresponding scores
 with_weight_timestamps = []
 with_weight_scores = []
 without_weight_timestamps = []
 without_weight_scores = []
 
+# Iterating through data
 for data in all_data:
     # Create arrays for forces, timestamps and scores
     filtered_data = normalize_data(data)
@@ -141,7 +141,9 @@ for data in all_data:
         without_weight_timestamps.append(timestamps)
         without_weight_scores.append(scores)
 
+# Calculating completion times
 completion_times_without = load_and_process_data(without_weight_timestamps, without_weight_scores)
 completion_times_with = load_and_process_data(with_weight_timestamps, with_weight_scores)
 
+# Plotting the learning curve and the boxplots
 plot_with_trendline(completion_times_without, completion_times_with)

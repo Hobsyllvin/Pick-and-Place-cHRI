@@ -4,8 +4,13 @@ from scipy.interpolate import UnivariateSpline
 import numpy as np
 import matplotlib.pyplot as plt
 
+'''
+Creating individual plots for the data obtained in the game and stored in the json files
+'''
 
-def plot_score(timestamps, scores):
+
+# Plotting scores for each player
+def plot_score(timestamps, scores, plot_number):
     # Ensure timestamps and scores are numpy arrays for compatibility with UnivariateSpline
     timestamps_np = np.array(timestamps)
     scores_np = np.array(scores)
@@ -25,17 +30,19 @@ def plot_score(timestamps, scores):
     plt.ylabel('Score')
     plt.grid(True)
     plt.legend()
-    plt.savefig('plots/score_vs_timestamp.png')  # Saving the plot to a file in the specified path
-    plt.show()
+    plt.savefig(f'plots/{plot_number}_score_vs_timestamp.png')  # Saving the plot to a file in the specified path
+    plt.close()
 
 
+# Normalizing the data to get rid of after-game time
 def normalize_data(data):
     new_max = 120000
     filtered_data = [data for data in data if data['timestamp'] <= new_max]
     return filtered_data
 
 
-def plot_derivative(timestamps, scores):
+# Plotting the derivative of picking up boxes for each player
+def plot_derivative(timestamps, scores, plot_number):
     # Convert lists to numpy arrays for easier mathematical operations
     timestamps_np = np.array(timestamps)
     scores_np = np.array(scores)
@@ -62,10 +69,11 @@ def plot_derivative(timestamps, scores):
     plt.xlabel('Time')
     plt.ylabel('Derivative of Score')
     plt.grid(True)
-    plt.savefig('plots/derivative_vs_timestamp.png')  # Saving the plot to a file in the specified path
-    plt.show()
+    plt.savefig(f'plots/{plot_number}_derivative_vs_timestamp.png')  # Saving the plot to a file in the specified path
+    plt.close()
 
 
+# Defining the directory of files
 directory = 'logdata'
 all_data = []
 
@@ -80,18 +88,16 @@ for filename in os.listdir(directory):
             data = json.load(file)
             all_data.append(data)
 
-with_weight_timestamps = []
-with_weight_scores = []
-without_weight_timestamps = []
-without_weight_scores = []
+plot_number = 0
 
+# Iterating over the entire dataset, plotting all of them
 for data in all_data:
+    plot_number += 1
     # Create arrays for forces, timestamps and scores
     filtered_data = normalize_data(data)
     timestamps = [item['timestamp'] for item in filtered_data]
     scores = [item['score'] for item in filtered_data]
     forces = [item['forces'] for item in filtered_data]
-    with_weight_perception_values = [item['with_weight_perception'] for item in filtered_data]
 
-    plot_score(timestamps, scores)
-    plot_derivative(timestamps, scores)
+    plot_score(timestamps, scores, plot_number)
+    plot_derivative(timestamps, scores, plot_number)
