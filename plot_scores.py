@@ -12,7 +12,7 @@ Creating individual plots for the data obtained in the game and stored in the js
 # Plotting scores for each player
 def plot_score(timestamps, scores, plot_number):
     # Ensure timestamps and scores are numpy arrays for compatibility with UnivariateSpline
-    timestamps_np = np.array(timestamps)
+    timestamps_np = np.array(timestamps) / 1000.0
     scores_np = np.array(scores)
     # The 's' parameter controls the amount of smoothing. A small value of 's' means more smoothing.
     # If 's' is None, s=len(x) which is the default and uses a residual-based estimation.
@@ -21,9 +21,11 @@ def plot_score(timestamps, scores, plot_number):
     # Generate a dense range of timestamps for a smooth curve
     dense_timestamps = np.linspace(min(timestamps_np), max(timestamps_np), 1000)
     smooth_scores = spline(dense_timestamps)  # Evaluate the spline at the dense timestamps
+    smooth_scores = np.poly1d(np.polyfit(timestamps_np, scores_np, 4))(dense_timestamps)
 
     # Plotting
     plt.figure(figsize=(10, 6))
+    plt.plot(timestamps_np, scores_np, color='red', label='Data Points')  # Plot data points
     plt.plot(dense_timestamps, smooth_scores, label='Smooth Curve')
     plt.title('Score vs Timestamp')
     plt.xlabel('Timestamp, s')
