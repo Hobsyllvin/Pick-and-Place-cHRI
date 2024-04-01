@@ -30,7 +30,7 @@ This repository contains the code and resources for a game that utilizes Haply f
 
 ## Running the Game
 
-To run the game, make sure you have Python installed on your system and execute the `PA3.py` file:
+To run the game, make sure you have Python3 installed, as well as the libraries pygame, numpy and matplotlib, and execute the `PA3.py` file:
 
 ```bash
-python PA3.py
+python3 PA3.py
