@@ -3,6 +3,7 @@ import numpy as np
 import json
 import os
 from scipy.optimize import curve_fit
+from scipy.stats import ttest_ind
 
 '''
 This code plots the combined scores from all participants, 
@@ -62,6 +63,10 @@ def plot_with_trendline(completion_times_without, completion_times_with):
     # Unpack the completion times into separate lists
     scores_without, times_without = zip(*completion_times_without)
     scores_with, times_with = zip(*completion_times_with)
+
+    t_stat, p_value = ttest_ind([time for scores_without, time in completion_times_without], [time for scores_with, time in completion_times_with])
+
+    print(f"T-statistic: {t_stat}, P-value: {p_value}")
 
     # Create a scatter plot
     plt.scatter(scores_with, times_with, label='Completion Time With Weight', color='red', s=10)
@@ -132,6 +137,7 @@ for data in all_data:
     scores = [item['score'] for item in filtered_data]
     forces = [item['forces'] for item in filtered_data]
     with_weight_perception_values = [item['with_weight_perception'] for item in filtered_data]
+
 
     if with_weight_perception_values[0]:
         with_weight_timestamps.append(timestamps)
